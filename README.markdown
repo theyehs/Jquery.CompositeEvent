@@ -4,6 +4,8 @@
 
 A JQuery plugin that extends its built-in event handling logic to allow multiple sequential and non-sequential events handling, and event handler invocation that have ordered by priority.
 
+## Supported JQuery version
+
 
 ## How to install
 
@@ -46,3 +48,20 @@ The old way have you create a counter, and on each successful Ajax response you 
 		}
 	});
 
+
+#### Listeners for multiple events are fired in a particular sequence
+
+**Why is it important:** Sequenced event detection shines in writing unit tests, where confirming the execution order of events are basis of tests. Imagine 
+
+	var $ahref = $("#);
+	
+#### Change the order of listener execution
+
+**Why is it important:** By default, listeners to the same event are fired by the order they were bound. 
+
+
+**How do we do it:** 
+
+	// specify a integer priority value to the listener
+	$(document).fancyOn({ priority: 33}, 
+	
