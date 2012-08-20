@@ -1,3 +1,5 @@
+> This project is the result of a Hackathon organized by my company, Pearl.com, without its investment of engineering time this project would not have happened.
+
 # Fancy handler
 
 A JQuery plugin that extends its built-in event handling logic to allow multiple sequential and non-sequential events handling, and event handler invocation that have ordered by priority.
@@ -10,68 +12,37 @@ Include `jquery.fancyevent.js` to your HTML after Jquery
 	<script type='text/javascript' src='jquery-1.x.x.js'></script>
 	<script type='text/javascript' src='jquery.fancyevent.js'></script>
 	
-Doing so would give you	access to `$.fancyOn()` method
+Doing so would give you	access to `$el.fancyOn()` method
 
-## How to use
+## Complementing JQuery's event system
 
-The step library exports a single function I call `Step`.  It accepts any number of functions as arguments and runs them in serial order using the passed in `this` context as the callback to the next step.
+The incentive for this project comes with what Jquery (as of 1.8) fails to provide:
 
-    Step(
-      function readSelf() {
-        fs.readFile(__filename, this);
-      },
-      function capitalize(err, text) {
-        if (err) throw err;
-        return text.toUpperCase();
-      },
-      function showIt(err, newText) {
-        if (err) throw err;
-        console.log(newText);
-      }
-    );
+#### Callback that invokes when more than one events are fired
 
-Notice that we pass in `this` as the callback to `fs.readFile`.  When the file read completes, step will send the result as the arguments to the next function in the chain.  Then in the `capitalize` function we're doing synchronous work so we can simple return the new value and Step will route it as if we called the callback.
+**Why is it important:** It's not unusual to see multiple asynchronous invocations fired. With the result of the methods coming back asynchronously, we cannot determine 
 
-The first parameter is reserved for errors since this is the node standard.  Also any exceptions thrown are caught and passed as the first argument to the next function.  As long as you don't nest callback functions inline your main functions this prevents there from ever being any uncaught exceptions.  This is very important for long running node.JS servers since a single uncaught exception can bring the whole server down.
+Say you need to render a data table where its data content comes from a web service, and its filter options comes from another web service. You should only start render the data table when both web services response come back.
 
-Also there is support for parallel actions:
+The old way have you create a counter, and on each successful Ajax response you increment its value by 1 AND check if it has reached the number of required responses. If so, you render the table. Or, you can do this:
 
-    Step(
-      // Loads two files in parallel
-      function loadStuff() {
-        fs.readFile(__filename, this.parallel());
-        fs.readFile("/etc/passwd", this.parallel());
-      },
-      // Show the result when done
-      function showStuff(err, code, users) {
-        if (err) throw err;
-        console.log(code);
-        console.log(users);
-      }
-    )
+	// create an empty JQuery object
+	var $pageObj = $({});
+	$pageObj.fancyOn(['webservice1Done', 'webservice2Done'], function(e) {
+	
+	});
+	
+	$.ajax({
+		url: 'webservice1URL',
+		success: function(data) {
+			$pageObj.trigger('webservice1Done', data);
+		}
+	});
 
-Here we pass `this.parallel()` instead of `this` as the callback.  It internally keeps track of the number of callbacks issued and preserves their order then giving the result to the next step after all have finished.  If there is an error in any of the parallel actions, it will be passed as the first argument to the next step.
+	$.ajax({
+		url: 'webservice2URL',
+		success: function() {
+			$pageObj.trigger('webservice2Done', data);
+		}
+	});
 
-Also you can use group with a dynamic number of common tasks.
-
-    Step(
-      function readDir() {
-        fs.readdir(__dirname, this);
-      },
-      function readFiles(err, results) {
-        if (err) throw err;
-        // Create a new group
-        var group = this.group();
-        results.forEach(function (filename) {
-          if (/\.js$/.test(filename)) {
-            fs.readFile(__dirname + "/" + filename, 'utf8', group());
-          }
-        });
-      },
-      function showAll(err , files) {
-        if (err) throw err;
-        console.dir(files);
-      }
-    );
-
-*Note* that we both call `this.group()` and `group()`.  The first reserves a slot in the parameters of the next step, then calling `group()` generates the individual callbacks and increments the internal counter.
