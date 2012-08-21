@@ -1,4 +1,41 @@
 
+(function() {
+
+var HandlerClass = function() {
+	this.boundEvents = [];
+};
+
+var formatTriggerArguments = function(events, arguments) {
+	var ret = [], eventLen = events.length;
+	try {
+		if (eventLen == 1) {
+			return arguments[events[0]][0];
+		}
+		for (var i=0; i<eventLen; i++) {
+			var event = events[i], tArg = arguments[event];
+			ret.push(tArg.shift());
+		}
+	} catch (e) {
+		console.log('Error: '+e);
+		return [];
+	}
+	return ret;
+};
+
+jQuery.extend(HandlerClass.prototype, {
+	addEventDef: function() {
+		this.boundEvents.push(arguments);
+	},
+	disable: function() {
+		var boundEvents = this.boundEvents;
+		for (var i=0; i<boundEvents.length; i++) {
+			var a = boundEvents[i];
+			
+			a[0].off(a[1], a[2], a[3], a[4]);
+		}
+	}
+});
+
 jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 	var generateGuid = function() {
 		var s4 = function() {
@@ -34,10 +71,10 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 	if (typeof events === 'string')
 		events = [events];
 
-
 	var eventLen = events.length;
 	var $this = this;
 	var uniqueEventName = '_fancy' + generateGuid();
+
 	var _matchedEvents, _matchedCount, _nextToMatchIndex;
 	var forceOrder = fancyOption.forceOrder;
 	var _reset = function() {
@@ -53,8 +90,11 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 		}
 	};
 	_reset();
+
+	var triggerArguments = {};
 	$this.on(uniqueEventName, selector, data, fn);
-	
+	var handlerInstance = new HandlerClass();
+	handlerInstance.addEventDef($this, uniqueEventName, selector, data, fn);
 	
 	var tEvents = [];
 	for (var i=0; i<eventLen; i++) {
@@ -62,13 +102,18 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 		if (tEvents.indexOf(event) >= 0)
 			continue;
 		tEvents.push(event);
-		
+		triggerArguments[event] = triggerArguments[event] || [];
+
 		var childFn = function(e) {
 			var eventName = e.data._fancyOn.eventName;
+			var args = Array.prototype.slice.call(arguments);
+			args.shift();
+			triggerArguments[eventName].push(args);
+			
 			if (forceOrder) {
 				if (events[_nextToMatchIndex] == eventName) {
 					if (++_nextToMatchIndex >= events.length) {
-						$this.trigger(uniqueEventName);
+						$this.trigger(uniqueEventName, formatTriggerArguments(events, triggerArguments));
 						_reset();
 					}
 				}
@@ -77,7 +122,7 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 					if (_matchedEvents[eventName]) {
 						_matchedEvents[eventName]--;
 						if (--_matchedCount == 0) {
-							$this.trigger(uniqueEventName);
+							$this.trigger(uniqueEventName, formatTriggerArguments(events, triggerArguments));
 							_reset();
 						}
 					}
@@ -90,7 +135,8 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 		};
 		childFn._priority = parseInt(fancyOption.priority) || 0;
 		$this.on(event, selector, childData, childFn);
-		
+		handlerInstance.addEventDef($this, event, selector, childData, childFn);
+
 		// resort the event order for each matched element based on priority
 		var matchedEle = $this.get();
 		for (var j=0; j<matchedEle.length; j++) {
@@ -103,4 +149,7 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 			});
 		}
 	}
+	return handlerInstance;
 };
+
+})();

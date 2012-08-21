@@ -1,8 +1,10 @@
-> This project is the result of a Hackathon organized by my company, Pearl.com, without its investment of engineering time this project would not have happened.
+> This JQuery plugin is a product of Pearl.com 2012 Developer Hackathon. Thank you Pearl.com for devoting costly engineer times to open source projects.
+
 
 # Fancy handler
 
-A JQuery plugin that extends its built-in event handling logic to allow multiple sequential and non-sequential events handling, and event handler invocation that have ordered by priority.
+A JQuery plugin that extends Jquery's default event handling logic to allow defining listener method for multiple sequential and non-sequential events handling, and event handler invocation that have ordered by priority.
+
 
 ## Supported JQuery version
 

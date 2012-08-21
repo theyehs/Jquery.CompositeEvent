@@ -66,8 +66,43 @@ test( "Handle fancyOn([evt1, evt2], callback)", function() {
 
 });
 
+test("Handling unbinding listeners", function() {
+	expect(1);
+	
+	///////////		
+	var $obj = $({}), output = '', handler;
+	handler = $obj.fancyOn(['event1', 'event2'], function() {
+		output += 'a';
+	});
+	$obj.trigger('event1');
+	$obj.trigger('event2');
+	handler.disable();
+	$obj.trigger('event1');
+	$obj.trigger('event2');	
+	equal(output, 'a', "see if unbinding works");
+});
+
 test( "Handle fancyOn([evt1, evt2], callback)", function() {
-	expect(0);
+	expect(5);
+	var $obj = $({}), output = '', handler;
+	handler = $obj.fancyOn(['event1', 'event2'], function(e) {
+		output += 'a';
+	});
+	$obj.trigger('event1', {});
+	$obj.trigger('event2');
+	handler.disable();
+	$obj.trigger('event1', {});
+	$obj.trigger('event2');
+	equal(output, 'a', "Making sure disable() works for multiple events");
 
-
+	///////////////
+	$obj = $({}), output = '';
+	$obj.fancyOn(['event1', 'event2'], { xxx: 33 }, function(e, event1Data, event2Data) {
+		equal(e.data.xxx, 33, "data is passed correctly");
+		equal(event1Data[0].data1, 'dog', 'argument is passed correctly');
+		equal(event2Data[0].data2, 'cat', 'argument is passed correctly');
+		equal(event2Data[1], 'cow', 'argument is passed correctly');
+	});
+	$obj.trigger('event1', [{data1: 'dog'}]);
+	$obj.trigger('event2', [{data2: 'cat'}, 'cow']);
 });
