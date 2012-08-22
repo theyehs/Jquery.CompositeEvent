@@ -14,7 +14,9 @@ $.fancyOn works for JQuery 1.7+. Support for previous JQuery versions in progres
 
 	jQuery.fancyOn([option], events [, selector] [, data] , handler(eventObject) )
 	
-**option** the configuration object to refine the handler logic. option.priority (integer) defines the handler's priority list; and option.forceOrder (boolean) 
+**option** the configuration object to refine the handler logic.
+*	option.priority (integer) defines the handler's priority list
+*	option.forceOrder (boolean) configures if the handler would fire on ordered sequence of events
 
 **events** is either a string of event name, or an array of event names. It cannot be an associative array.
 
@@ -33,98 +35,90 @@ This gives all JQuery elements access to `fancyOn()` method
 
 ## Complementing JQuery's event system
 
+This plugin attempts to add a few features that JQuery, as of version 1.8, lacks.
 
-This plugin attempts to add a few features that JQuery, as of version 1.8, doesn't provide.
+### Programmatically changing the execution order of a event's handlers
 
-#### Programmatically change the execution order of a event's handlers
-
-**How does it work:** The priority of a handler is specified by the `priority` option. Higher the priority sooner the handle will execute. Handlers with the same priority are executed in the order of binding. Handlers with unspecified priority has the priority value of 0. It's possible for priority to have a negative value.
+**How does it work:** The priority of a handler is specified by the `priority` option. The higher the priority the sooner the handler executes. Handlers with the same priority are executed in the order of binding. Handlers with unspecified priority has the priority value of 0. It's possible for priority to have a negative value.
 
 	$('#submitButton').fancyOn({ priority: 10 }, 'click', function() {
-		// execute code before all other 'click' handlers
+		// execute code before all other 'click' handlers on this element
 	});
 
 
-**Why is it useful:** By default, handlers bound to an event are executed by the order of binding. However, when handlers are declared across multiple .js files and the inclusion of those .js files outside a developer's control, as does the handlers' execution order. And there are cases where maintaining a specific order is important:
+**Why is it useful:** By default, handlers bound to an event are executed by the order of binding. However, when handlers are declared across multiple .js files and the inclusion of those .js files outside a developer's control, as does the handlers' execution order. There are some cases where maintaining a specific order is important:
 
 *	Some handlers are costly to execute. As a performance fanatic you want to execute them last.
 
 *	You want to make change to an existing handler but don't want to change its source code. Instead you want to execute some code prior to the said handler, to change the latter's behavior.
 
-*	One handler has data dependency on another handler. You want to explicitly force the second handler to run before the first.
+*	One handler depends on the data that another handler creates. You want to explicitly force the second handler to run before the first.
 
 
-#### Listener for a sequence of events
+### Listener for a sequence of events
 
 **How does it work:** Use the `forceOrder` option to have the handler tracks when all the events are fired in the specific order.
 
-	$someEl.fancyOn({ forceOrder: true}, ['evt1', 'evt1', 'evt2', 'evt3'], function(e) {
-		//
+	$someEl.fancyOn({ forceOrder: true}, ['evt1', 'evt1', 'evt2', 'evt3'], callbackFunc);
+	
+Assuming $someEl fires evt2, evt1, evt2, evt1, evt2, evt2, evt3 in succession, the handler above will execute on firing of evt3. 
+
+
+**Why is it useful:** Sometimes an application's control flow grows complex, and an event handler's behavior varies depends on external factors. User clicking on the 'I Agree" button may see a popup warning message if a certain checkbox is not p
+
+
+`{forceOrder:true}` allow setting prerequisites for an event handle
+
+Instead of doing condition check within the handler
+
+	$submitButton.on('click', function() {
+		if (dataIsReady()) {
+			processForm();
+		}
 	});
-	
-Assuming $someEl fires evt2, evt1, evt2, evt1, evt2, evt2, evt3 in succession, the handler above will execute on evt3. 
-	
-**Why is it useful:** Sometimes an application's control flow grows so complex, it becomes messy to set up and track a new event for each path of execution. An alternative is to break down 
 
-	// instead of 
-	$someEl.on('', callback);
 
-	// you can do
-	$someEl.fancyOn({forceOrder: true}, ['stage1On', 'stage2On', ...], callback);
+### Listener for an unordered list of events
 
-+Sometimes a event handler only executes under certain conditions, instead of doing the check on the event handler, make it a predeccessor event.
-
-+One of your unit tests requires multi-step verification, you can put the assertion statement within the fancyOn handler.
-
-+
-
-#### Listener for an orderless list of events
-
-**How does it work:** It's similar to the ordered version, without the `forceOrder` option.
+**How does it work:** Setting up this type of listener is similar to its ordered counterpart. Just remove the `forceOrder` option.
 
 	$someEl.fancyOn(['evt1', 'evt1', 'evt2', 'evt3'], callback);
 
-**Why is it useful:** There may want 
+**Why is it useful:** In many cases we cannot precisely predict events firing order &mdash; users may interact with page elements randomly; or asychronous operations may complete in undeterministic order. Consider:
 
+*	You need to combine data from multiple AJAX calls, then process that data. And since you can't be sure when those web services would come back (if they come back at all!),  and you want to 
 
-Furthermore, in applications that heavily relied on web service data
-
-
-Being able to execute code when multiple events are triggered becomes important where the order of event firing is no longer deterministic. 
-
-
-
-`$el.fancyOn(['evt1', 'evt2'], callback)` is merely a fancy
-
-If all events are triggered in deterministic order, then being able to do `fancyOn(['evt1', 'evt2'])` won't give us much more than a 
-
-
-It's not unusual to see multiple asynchronous invocations fired. With the result of the methods coming back asynchronously, we cannot determine 
-
-Say you need to render a data table where its data content comes from a web service, and its filter options comes from another web service. You should only start render the data table when both web services response come back.
-
-The old way have you create a counter, and on each successful Ajax response you increment its value by 1 AND check if it has reached the number of required responses. If so, you render the table. Or, you can do this:
-
-	// create an empty JQuery object
-	var $pageObj = $({});
-	$pageObj.fancyOn(['webservice1Done', 'webservice2Done'], function(e) {
-	
-	});
-	
-	$.ajax({
-		url: 'webservice1URL',
-		success: function(data) {
-			$pageObj.trigger('webservice1Done', data);
-		}
-	});
-
-	$.ajax({
-		url: 'webservice2URL',
-		success: function() {
-			$pageObj.trigger('webservice2Done', data);
-		}
-	});
-
+*	
 
 ## More Usages
 
+Passing data to the handler
+
+	$someEl = $({});
+	// single event works the same as jQuery.on()
+	$someEl.fancyOn('evt1', function(e, arg1, arg2) {
+		// arg1 == 'one', AND arg2 == 'two'
+	});
+	$someEl.trigger('evt1', ['one', 'two']);
+	
+	$someEl = $({});
+	// multiple events have each arg be a 
+	$someEl.fancyOn(['evt1', 'evt2'], function(e, evt1Args, evt2Args) {
+		// evt1Args == ['one', 'two'], AND evt2Args == ['three', 'four']
+	});
+	$someEl.trigger('evt1', ['one', 'two']);
+	$someEl.trigger('evt2', ['three', 'four']);	
+	
+Unbinding a handler
+
+	$someEl = $({});
+	
+	// fancyOn() returns a listener object where you can call disable() to turn it off
+	var $listener = $someEl.fancyOn({priority: -10}, ['evt1', 'evt2'], function(e) {...});
+	$listener.disable();
+	
+	
+Tracking multiple occurence of the same event
+
+	$someEl = $({});
+	$someEl.fancyOn(['evt1', 'evt1', 'evt2'], callback);
