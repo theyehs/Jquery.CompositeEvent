@@ -1,12 +1,25 @@
 > This JQuery plugin is a product of Pearl.com 2012 Developer Hackathon. Thank you Pearl.com for devoting costly engineer times to open source projects.
 
 
-# Fancy handler
+# JQuery Fancy Event
 
-A JQuery plugin that extends Jquery's default event handling logic to allow defining listener method for multiple sequential and non-sequential events handling, and event handler invocation that have ordered by priority.
+It is a JQuery plugin that extends Jquery's default event handling logic to allow defining listener method for multiple sequential and non-sequential events handling, and event handler invocation that have ordered by priority.
 
 
 ## Supported JQuery version
+$.fancyOn works for JQuery 1.7+. Support for previous JQuery versions in progress.
+
+
+## Method definition
+
+	jQuery.fancyOn([option], events [, selector] [, data] , handler(eventObject) )
+	
+**option** the configuration object to refine the handler logic. option.priority (integer) defines the handler's priority list; and option.forceOrder (boolean) 
+
+**events** is either a string of event name, or an array of event names. It cannot be an associative array.
+
+The rest of parameter list is very similar to that of jQuery.on(). Please refer to http://api.jquery.com/on/ for details.
+
 
 ## How to install
 
@@ -14,55 +27,62 @@ Include `jquery.fancyevent.js` to your HTML after Jquery
 
 	<script type='text/javascript' src='jquery-1.x.x.js'></script>
 	<script type='text/javascript' src='jquery.fancyevent.js'></script>
-	
-This gives you access to `$el.fancyOn()` method
+
+This gives all JQuery elements access to `fancyOn()` method
+
 
 ## Complementing JQuery's event system
 
+
 This plugin attempts to add a few features that JQuery, as of version 1.8, doesn't provide.
 
-#### Change the order of listener execution
+#### Programmatically change the execution order of a event's handlers
 
-**How does it work:** Pass a integer value to the `priority` option, the higher the priority the sooner it will be executed. Handlers with the same priority are executed in the order of binding. Handlers with unspecified priority and handlers bounded not by fancyOn has the priority value of 0. It's possible for priority to have a negative value.
+**How does it work:** The priority of a handler is specified by the `priority` option. Higher the priority sooner the handle will execute. Handlers with the same priority are executed in the order of binding. Handlers with unspecified priority has the priority value of 0. It's possible for priority to have a negative value.
 
 	$('#submitButton').fancyOn({ priority: 10 }, 'click', function() {
-		// something that would happen before all other 'click' handlers
+		// execute code before all other 'click' handlers
 	});
 
 
-**Why is it important:** By default, firing an event causes handlers bound to this event to execute, following the bound order of the handlers. This approach works well, if we can assume no dependency between handlers, nor requirement for the execution order of the handlers. However, in some cases we don't have the luxury of such assumptions:
+**Why is it useful:** By default, handlers bound to an event are executed by the order of binding. However, when handlers are declared across multiple .js files and the inclusion of those .js files outside a developer's control, as does the handlers' execution order. And there are cases where maintaining a specific order is important:
 
-+Some handlers incur heavy performance costs. So we want to move the lighter handlers to execute early.
+*	Some handlers are costly to execute. As a performance fanatic you want to execute them last.
 
-+
+*	You want to make change to an existing handler but don't want to change its source code. Instead you want to execute some code prior to the said handler, to change the latter's behavior.
+
+*	One handler has data dependency on another handler. You want to explicitly force the second handler to run before the first.
 
 
 #### Listener for a sequence of events
-**Why is it useful:** Sometimes an application's control flow grows so complex, it becomes messy to set up of a new event for each path of execution. If nstead of keeping tracking of and firing '
-Such listener
 
-A suggested pattern is to create events that are only fired under certain conditions, then use those 'conditioned' events as prerequisite to other events. Say you have a webform where the user wants to , traditionally you would do
+**How does it work:** Use the `forceOrder` option to have the handler tracks when all the events are fired in the specific order.
 
-	$('#submitButton').on('click', function() {
-		// check if the 
-		if () {
-		
-		
-		}
-		
-			return;
-		
+	$someEl.fancyOn({ forceOrder: true}, ['evt1', 'evt1', 'evt2', 'evt3'], function(e) {
+		//
 	});
-
-
-This approach works perfectly, The code base would be ho
-
-	$pageObj.fancyOn(['', ''], function() {
 	
-	});
+Assuming $someEl fires evt2, evt1, evt2, evt1, evt2, evt2, evt3 in succession, the handler above will execute on evt3. 
+	
+**Why is it useful:** Sometimes an application's control flow grows so complex, it becomes messy to set up and track a new event for each path of execution. An alternative is to break down 
 
+	// instead of 
+	$someEl.on('', callback);
 
-#### Listener for multiple events
+	// you can do
+	$someEl.fancyOn({forceOrder: true}, ['stage1On', 'stage2On', ...], callback);
+
++Sometimes a event handler only executes under certain conditions, instead of doing the check on the event handler, make it a predeccessor event.
+
++One of your unit tests requires multi-step verification, you can put the assertion statement within the fancyOn handler.
+
++
+
+#### Listener for an orderless list of events
+
+**How does it work:** It's similar to the ordered version, without the `forceOrder` option.
+
+	$someEl.fancyOn(['evt1', 'evt1', 'evt2', 'evt3'], callback);
 
 **Why is it useful:** There may want 
 
@@ -105,13 +125,6 @@ The old way have you create a counter, and on each successful Ajax response you 
 		}
 	});
 
-
-
-**How do we do it:** 
-
-	// specify a integer priority value to the listener
-	$(document).fancyOn({ priority: 33}, 
-	
 
 ## More Usages
 
