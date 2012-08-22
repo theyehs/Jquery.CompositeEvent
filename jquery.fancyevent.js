@@ -30,13 +30,20 @@ jQuery.extend(HandlerClass.prototype, {
 		var boundEvents = this.boundEvents;
 		for (var i=0; i<boundEvents.length; i++) {
 			var a = boundEvents[i];
-			
-			a[0].off(a[1], a[2], a[3], a[4]);
+			if (a[0].off) {
+				a[0].off(a[1], a[2], a[3], a[4]);
+			} else {
+				a[0].unbind(a[1], a[4]);
+			}
 		}
+		this.boundEvents = [];
 	}
 });
 
 jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
+	if (fancyOption.numUsage !== undefined && fancyOption.numUsage == 0)
+		return;
+
 	var generateGuid = function() {
 		var s4 = function() {
 			return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
@@ -88,11 +95,28 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 			else
 				_matchedEvents[event]++;
 		}
+		if (numberUsage !== undefined) {
+			if (--numberUsage <= 0 && handlerInstance)
+				handlerInstance.disable();
+		}
 	};
 	_reset();
+	var numberUsage = fancyOption.numUsage;
+
+	if (fancyOption.expireTime) {
+		setTimeout(function() {
+			if (handlerInstance)
+				handlerInstance.disable();
+		}, fancyOption.expireTime);
+	}
 
 	var triggerArguments = {};
-	$this.on(uniqueEventName, selector, data, fn);
+	
+	if ($this.on)
+		$this.on(uniqueEventName, selector, data, fn);
+	else
+		$this.bind(uniqueEventName, data, fn);
+		
 	var handlerInstance = new HandlerClass();
 	handlerInstance.addEventDef($this, uniqueEventName, selector, data, fn);
 	
@@ -134,7 +158,12 @@ jQuery.fn.fancyOn = function(fancyOption, events, selector, data, fn) {
 			eventName: event
 		};
 		childFn._priority = parseInt(fancyOption.priority) || 0;
-		$this.on(event, selector, childData, childFn);
+		
+		if ($this.on) {
+			$this.on(event, selector, childData, childFn);
+		} else {
+			$this.bind(event, childData, childFn);
+		}
 		handlerInstance.addEventDef($this, event, selector, childData, childFn);
 
 		// resort the event order for each matched element based on priority

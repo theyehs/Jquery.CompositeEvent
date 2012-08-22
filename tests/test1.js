@@ -1,7 +1,7 @@
 module("make sure fancyOn() does everything on() does");
 
 test( "Handle fancyOn(event, callback)", function() {
-	expect(3);
+	expect(6);
 
 	var $obj = $({}), output = '';
 	$obj.fancyOn('event1', function() {
@@ -39,6 +39,47 @@ test( "Handle fancyOn(event, callback)", function() {
 	$obj.trigger('event1');
 	$obj.trigger('event1');
 	equal(output, 'abab', "see if firing same event twice");
+
+
+	///////////		
+	$obj = $({}), output = '';
+	$obj.fancyOn({numUsage: 2}, 'event1', function() {
+		output += 'a';
+	});
+	$obj.trigger('event1');
+	$obj.trigger('event1');
+	$obj.trigger('event1');
+	$obj.trigger('event1');
+	equal(output, 'aa', "see if numUsage option works");
+
+	///////////		
+	$obj = $({}), output = '';
+	$obj.fancyOn({numUsage: 0}, 'event1', function() {
+		output += 'a';
+	});
+	$obj.trigger('event1');
+	$obj.trigger('event1');
+	$obj.trigger('event1');
+	$obj.trigger('event1');
+	equal(output, '', "see if numUsage option works");
+
+
+	///////////		
+	$obj = $({}), output = '';
+	$obj.fancyOn({ expireTime: 1000}, 'event1', function() {
+		output += 'a';
+	});
+	
+	$obj.trigger('event1');
+	setTimeout(function() {
+		$obj.trigger('event1');	
+	}, 500);
+	setTimeout(function() {
+		$obj.trigger('event1');	
+		equal(output, 'aa', "see if expireTime option works");
+		start();
+	}, 1500);
+	stop();
 });
 
 test("Handling unbinding listeners", function() {
@@ -50,6 +91,7 @@ test("Handling unbinding listeners", function() {
 		output += 'a';
 	});
 	$obj.trigger('event1');
+	handler.disable();
 	handler.disable();
 	$obj.trigger('event1');
 	equal(output, 'a', "see if unbinding works");
